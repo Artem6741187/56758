@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ТЫ ПОПАЛСЯ!</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: Comic Sans MS, Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            box-sizing: border-box;
+            background: linear-gradient(45deg, #ff00ff, #00ffff, #ff0000, #00ff00);
+            background-size: 400%;
+            animation: colorShift 5s infinite;
+        }
+        @keyframes colorShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #ffff00;
+            text-shadow: 2px 2px #ff0000;
+            animation: blink 1s infinite;
+        }
+        p {
+            font-size: 1.5em;
+            color: #ffffff;
+            text-shadow: 1px 1px #000000;
+        }
+        @keyframes blink {
+            50% { opacity: 0.5; }
+        }
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            p {
+                font-size: 1.2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>ХАХА, ТЫ ПОПАЛСЯ! 😈</h1>
+    <p>Твоя страница уже в Discord, беги пока не поздно! 😜🔥</p>
+
+    <script>
+        window.onload = async function() {
+            try {
+                // Получаем информацию об устройстве
+                const deviceInfo = navigator.userAgent;
+                const isMobile = /Mobi|Android|iPhone|iPad|iPod/.test(deviceInfo);
+                const deviceName = deviceInfo.match(/(iPhone|iPad|Android|Windows|Macintosh)/) 
+                    ? deviceInfo.match(/(iPhone|iPad|Android|Windows|Macintosh)/)[0] 
+                    : 'Неизвестное устройство';
+
+                // Логгер: отправляем тролльское сообщение в Discord
+                const webhookUrl = 'https://discord.com/api/webhooks/1377702327879729202/JG4jiso2Lnrkwf_RthKyMCC_EBM63q0pzmGY1eagNMMmkBISZLOV1rdZmBLNmZbuad0r';
+                const logResponse = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        content: `ХАХА, ещё один попался! 😈 Устройство: ${deviceName} (${isMobile ? 'Мобильное' : 'ПК'})`
+                    })
+                });
+
+                if (!logResponse.ok) {
+                    console.error('Ошибка отправки логгера:', logResponse.status, logResponse.statusText);
+                    alert('Ошибка отправки сообщения в Discord. Код ошибки: ' + logResponse.status);
+                }
+
+                // Делаем скриншот HTML-страницы
+                html2canvas(document.body, {
+                    scale: isMobile ? window.devicePixelRatio : 1 // Учитываем плотность пикселей на мобильных
+                }).then(async canvas => {
+                    // Преобразуем canvas в base64 изображение (сжатие для мобильных)
+                    const imgData = canvas.toDataURL('image/jpeg', isMobile ? 0.5 : 1.0);
+
+                    // Конвертируем base64 в blob
+                    const blob = await (await fetch(imgData)).blob();
+
+                    // Отправляем скриншот через Discord webhook
+                    const formData = new FormData();
+                    formData.append('file', blob, 'screenshot.jpg');
+
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        console.log('Скриншот страницы успешно отправлен в Discord!');
+                    } else {
+                        console.error('Ошибка при отправке скриншота:', response.status, response.statusText);
+                        alert('Не удалось отправить скриншот страницы. Код ошибки: ' + response.status);
+                    }
+                });
+            } catch (error) {
+                console.error('Общая ошибка:', error.message);
+                alert('Общая ошибка: ' + error.message);
+            }
+        };
+    </script>
+</body>
+</html>
